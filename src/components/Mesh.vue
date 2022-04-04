@@ -1,373 +1,359 @@
 <template>
-  <v-container fluid>
-    <v-card>
-      <v-container grid-list-md>
-        <v-layout row wrap>
-          <v-flex xs2 md2>
-            <v-text-field
-              label="Nodes size"
-              v-model.number="nodeSize"
-              min="10"
-              type="number"
-            ></v-text-field>
-          </v-flex>
-          <v-flex xs2 md2>
-            <v-text-field
-              label="Font size"
-              v-model.number="fontSize"
-              min="10"
-              type="number"
-            ></v-text-field>
-          </v-flex>
-          <v-flex xs3 md2>
-            <v-text-field
-              label="Distance"
-              v-model.number="force"
-              min="100"
-              type="number"
-            ></v-text-field>
-          </v-flex>
-          <v-flex xs3 md2>
-            <v-switch label="Show location" v-model="showLocation"></v-switch>
-          </v-flex>
-          <v-flex xs5 md6>
-            <v-btn color="success" @click="downloadSVG">Download SVG</v-btn>
-          </v-flex>
-        </v-layout>
-      </v-container>
+	<v-container fluid>
+		<zwave-graph
+			ref="mesh"
+			id="mesh"
+			:nodes="nodes"
+			@node-click="nodeClick"
+		/>
 
-      <d3-network
-        id="mesh"
-        ref="mesh"
-        :net-nodes="activeNodes"
-        :net-links="links"
-        :options="options"
-        :selection="selection"
-        @node-click="nodeClick"
-      />
+		<v-container
+			id="properties"
+			draggable
+			v-show="showProperties"
+			class="details"
+		>
+			<v-icon
+				@click="showProperties = false"
+				style="
+					cursor: pointer;
+					position: absolute;
+					right: 10px;
+					top: 10px;
+				"
+				>clear</v-icon
+			>
+			<v-icon
+				@click="showProperties = false"
+				style="
+					cursor: pointer;
+					position: absolute;
+					right: 10px;
+					top: 10px;
+				"
+				>clear</v-icon
+			>
+			<v-col v-if="selectedNode">
+				<v-subheader>Node properties</v-subheader>
+				<v-list dense style="min-width: 300px; background: transparent">
+					<v-list-item dense>
+						<v-list-item-content>ID</v-list-item-content>
+						<v-list-item-content class="align-end">{{
+							selectedNode.id
+						}}</v-list-item-content>
+					</v-list-item>
+					<v-list-item dense>
+						<v-list-item-content>Status</v-list-item-content>
+						<v-list-item-content class="align-end">{{
+							selectedNode.status
+						}}</v-list-item-content>
+					</v-list-item>
+					<v-list-item dense>
+						<v-list-item-content>Code</v-list-item-content>
+						<v-list-item-content class="align-end">{{
+							selectedNode.productLabel
+						}}</v-list-item-content>
+					</v-list-item>
+					<v-list-item dense>
+						<v-list-item-content>Product</v-list-item-content>
+						<v-list-item-content class="align-end">{{
+							selectedNode.productDescription
+						}}</v-list-item-content>
+					</v-list-item>
+					<v-list-item dense>
+						<v-list-item-content>Manufacturer</v-list-item-content>
+						<v-list-item-content class="align-end">{{
+							selectedNode.manufacturer
+						}}</v-list-item-content>
+					</v-list-item>
+					<v-list-item v-if="selectedNode.name">
+						<v-list-item-content>Name</v-list-item-content>
+						<v-list-item-content class="align-end">{{
+							selectedNode.name
+						}}</v-list-item-content>
+					</v-list-item>
+					<v-list-item v-if="selectedNode.loc">
+						<v-list-item-content>Location</v-list-item-content>
+						<v-list-item-content class="align-end">{{
+							selectedNode.loc
+						}}</v-list-item-content>
+					</v-list-item>
+					<v-list-item dense>
+						<v-list-item-content>Statistics</v-list-item-content>
+						<v-list-item-content class="align-end"
+							><statistics-arrows :node="selectedNode"
+						/></v-list-item-content>
+					</v-list-item>
+					<div v-if="lwr">
+						<v-subheader>Last working route</v-subheader>
+						<v-list-item dense v-for="(s, i) in lwr" :key="i">
+							<v-list-item-content>{{
+								s.title
+							}}</v-list-item-content>
+							<v-list-item-content class="align-end">{{
+								s.text
+							}}</v-list-item-content>
+						</v-list-item>
+					</div>
 
-      <div id="properties" draggable v-show="showProperties" class="details">
-        <v-icon
-          @click="showProperties = false"
-          style="cursor:pointer;position:absolute;right:10px;top:10px"
-          >clear</v-icon
-        >
-        <v-subheader>Node properties</v-subheader>
-        <v-list
-          v-if="selectedNode"
-          dense
-          style="min-width:300px;background:transparent"
-        >
-          <v-list-item>
-            <v-list-item-content>ID</v-list-item-content>
-            <v-list-item-content class="align-end">{{
-              selectedNode.data.id
-            }}</v-list-item-content>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-content>Status</v-list-item-content>
-            <v-list-item-content class="align-end">{{
-              selectedNode.data.status
-            }}</v-list-item-content>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-content>Code</v-list-item-content>
-            <v-list-item-content class="align-end">{{
-              selectedNode.data.productLabel
-            }}</v-list-item-content>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-content>Product</v-list-item-content>
-            <v-list-item-content class="align-end">{{
-              selectedNode.data.productDescription
-            }}</v-list-item-content>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-content>Manufacturer</v-list-item-content>
-            <v-list-item-content class="align-end">{{
-              selectedNode.data.manufacturer
-            }}</v-list-item-content>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-content>Name</v-list-item-content>
-            <v-list-item-content class="align-end">{{
-              selectedNode.data.name
-            }}</v-list-item-content>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-content>Location</v-list-item-content>
-            <v-list-item-content class="align-end">{{
-              selectedNode.data.loc
-            }}</v-list-item-content>
-          </v-list-item>
-        </v-list>
-      </div>
-
-      <v-speed-dial bottom fab right fixed v-model="fab">
-        <template v-slot:activator>
-          <v-btn color="blue darken-2" dark fab hover v-model="fab">
-            <v-icon v-if="fab">close</v-icon>
-            <v-icon v-else>add</v-icon>
-          </v-btn>
-        </template>
-        <v-btn fab dark small color="green" @click="refresh">
-          <v-icon>refresh</v-icon>
-        </v-btn>
-      </v-speed-dial>
-    </v-card>
-  </v-container>
+					<div v-if="nlwr">
+						<v-subheader>Next Last working route</v-subheader>
+						<v-list-item dense v-for="(s, i) in nlwr" :key="i">
+							<v-list-item-content>{{
+								s.title
+							}}</v-list-item-content>
+							<v-list-item-content class="align-end">{{
+								s.text
+							}}</v-list-item-content>
+						</v-list-item>
+					</div>
+				</v-list>
+				<v-row
+					v-if="!selectedNode.isControllerNode"
+					class="mt-1"
+					justify="center"
+				>
+					<v-btn color="primary" rounded @click="dialogHealth = true"
+						>Check Health</v-btn
+					>
+				</v-row>
+			</v-col>
+		</v-container>
+		<v-speed-dial style="left: 100px" bottom fab left fixed v-model="fab">
+			<template v-slot:activator>
+				<v-btn color="blue darken-2" dark fab hover v-model="fab">
+					<v-icon v-if="fab">close</v-icon>
+					<v-icon v-else>add</v-icon>
+				</v-btn>
+			</template>
+			<v-btn fab dark small color="green" @click="debounceRefresh">
+				<v-icon>refresh</v-icon>
+			</v-btn>
+		</v-speed-dial>
+		<dialog-health-check
+			v-model="dialogHealth"
+			@close="dialogHealth = false"
+			:node="selectedNode"
+			:socket="socket"
+			:nodes="nodes"
+			v-on="$listeners"
+		/>
+	</v-container>
 </template>
+
+<style scoped>
+.details {
+	position: absolute;
+	top: 150px;
+	left: 30px;
+	background: #ccccccaa;
+	border: 2px solid black;
+	border-radius: 20px;
+	max-width: 400px;
+	z-index: 1;
+}
+</style>
+
 <script>
-import D3Network from 'vue-d3-network'
+import ZwaveGraph from '@/components/custom/ZwaveGraph.vue'
+import { mapMutations, mapGetters } from 'vuex'
+
+import { socketEvents, inboundEvents as socketActions } from '@/plugins/socket'
+import StatisticsArrows from '@/components/custom/StatisticsArrows.vue'
+import DialogHealthCheck from './dialogs/DialogHealthCheck.vue'
+
+const ProtocolDataRate = {
+	1: 'ZWave_9k6',
+	2: 'ZWave_40k',
+	3: 'ZWave_100k',
+	4: 'LongRange_100k',
+}
 
 export default {
-  name: 'Mesh',
-  props: {
-    socket: Object,
-    socketActions: Object,
-    socketEvents: Object
-  },
-  components: {
-    D3Network
-  },
-  watch: {
-    showLocation () {
-      for (const n of this.nodes) {
-        n.name = this.nodeName(n)
-      }
-    }
-  },
-  computed: {
-    activeNodes () {
-      return this.nodes.filter(n => n.id !== 0 && n.status !== 'Removed')
-    },
-    options () {
-      return {
-        canvas: false,
-        force: this.force,
-        offset: {
-          x: 0,
-          y: 0
-        },
-        nodeSize: this.nodeSize,
-        fontSize: this.fontSize,
-        linkWidth: 1,
-        nodeLabels: true,
-        linkLabels: false,
-        strLinks: true,
-        resizeListener: true
-      }
-    },
-    selection () {
-      var s = {
-        nodes: [],
-        links: []
-      }
+	name: 'Mesh',
+	props: {
+		socket: Object,
+	},
+	components: {
+		ZwaveGraph,
+		StatisticsArrows,
+		DialogHealthCheck,
+	},
+	computed: {
+		...mapGetters(['nodes']),
+		lwr() {
+			if (!this.selectedNode) return null
 
-      if (this.selectedNode) {
-        s.nodes[this.selectedNode.id] = this.selectedNode
-      }
+			const stats = this.selectedNode.statistics
 
-      return s
-    }
-  },
-  data () {
-    return {
-      nodeSize: 20,
-      fontSize: 10,
-      force: 2000,
-      nodes: [],
-      links: [],
-      fab: false,
-      selectedNode: null,
-      showProperties: false,
-      showLocation: false
-    }
-  },
-  methods: {
-    showSnackbar (text) {
-      this.$emit('showSnackbar', text)
-    },
-    nodeClick (e, node) {
-      this.selectedNode = this.selectedNode === node ? null : node
-      this.showProperties = !!this.selectedNode
-    },
-    downloadSVG () {
-      this.$refs.mesh.screenShot('myNetwork.svg', true, true)
-    },
-    convertNode (n) {
-      return {
-        id: n.id,
-        _cssClass: this.nodeClass(n),
-        name: this.nodeName(n),
-        status: n.status,
-        data: n
-      }
-    },
-    nodeName (n) {
-      if (n.data) n = n.data // works both with node object and mesh node object
-      var name = n.name || n.product || 'node ' + n.id
-      return name + (this.showLocation && n.loc ? ` (${n.loc})` : '')
-    },
-    nodeClass (n) {
-      if (n.id === 1) {
-        return 'controller'
-      }
-      return n.status.toLowerCase()
-    },
-    apiRequest (apiName, args) {
-      if (this.socket.connected) {
-        var data = {
-          api: apiName,
-          args: args
-        }
-        this.socket.emit(this.socketActions.zwave, data)
-      } else {
-        this.showSnackbar('Socket disconnected')
-      }
-    },
-    refresh () {
-      this.socket.emit(this.socketActions.zwave, {
-        api: 'refreshNeighbors',
-        args: []
-      })
-    },
-    updateLinks () {
-      this.links = []
+			if (!stats || !stats.lwr) return null
 
-      for (const source of this.nodes) {
-        if (source.neighbors) {
-          for (const target of source.neighbors) {
-            this.links.push({
-              sid: source.id,
-              tid: target,
-              _color: this.$vuetify.theme.dark ? 'white' : 'black'
-            })
-          }
-        }
-      }
-    }
-  },
-  mounted () {
-    var self = this
+			const routeStats = this.parseRouteStats(stats.lwr)
 
-    this.socket.on(this.socketEvents.nodeRemoved, node => {
-      self.$set(self.nodes, node.id, node)
-    })
+			return routeStats
+		},
+		nlwr() {
+			if (!this.selectedNode) return null
 
-    this.socket.on(this.socketEvents.init, data => {
-      var nodes = data.nodes
-      for (var i = 0; i < nodes.length; i++) {
-        self.nodes.push(self.convertNode(nodes[i]))
-      }
-    })
+			const stats = this.selectedNode.statistics
 
-    this.socket.on(this.socketEvents.nodeRemoved, node => {
-      self.$set(self.nodes, node.id, node)
-      self.refresh()
-    })
+			if (!stats || !stats.nlwr) return null
 
-    this.socket.on(this.socketEvents.nodeUpdated, data => {
-      var node = self.convertNode(data)
+			const routeStats = this.parseRouteStats(stats.nlwr)
 
-      // node added
-      var refresh = !self.nodes[data.id] || self.nodes[data.id].failed
+			return routeStats
+		},
+	},
+	data() {
+		return {
+			dialogHealth: false,
+			nodeSize: 20,
+			fontSize: 10,
+			force: 2000,
+			fab: false,
+			selectedNode: null,
+			showProperties: false,
+			showLocation: false,
+			refreshTimeout: null,
+		}
+	},
+	methods: {
+		...mapMutations(['showSnackbar', 'setNeighbors']),
+		nodeClick(node) {
+			this.selectedNode = this.selectedNode === node ? null : node
+			this.showProperties = !!this.selectedNode
+		},
+		parseRouteStats(stats) {
+			const repRSSI = stats.repeaterRSSI || []
+			const repeaters =
+				stats.repeaters?.length > 0
+					? stats.repeaters
+							.map(
+								(r, i) =>
+									`${r}${
+										repRSSI[i] ? ` (${repRSSI[i]})` : ''
+									}`
+							)
+							.join(', ')
+					: 'None, direct connection'
+			const routeFiled = stats.routeFailedBetween
+				? stats.routeFailedBetween
+						.map((r) => `${r[0]} --> ${r[1]}`)
+						.join(', ')
+				: 'N/A'
 
-      // add missing nodes if new node added
-      while (self.nodes.length < data.id) {
-        self.nodes.push({
-          id: self.nodes.length,
-          failed: true,
-          status: 'Removed'
-        })
-      }
+			return [
+				{
+					title: 'RSSI',
+					text: stats.rssi ? stats.rssi + ' dBm' : 'N/A',
+				},
+				{
+					title: 'Protocol Data Rate',
+					text: ProtocolDataRate[stats.protocolDataRate] || 'N/A',
+				},
+				{
+					title: 'Repeaters',
+					text: repeaters,
+				},
+				{
+					title: 'Route failed between',
+					text: routeFiled,
+				},
+			]
+		},
+		debounceRefresh() {
+			if (this.refreshTimeout) {
+				clearTimeout(this.refreshTimeout)
+			}
 
-      self.$set(self.nodes, data.id, node)
+			this.refreshTimeout = setTimeout(this.refresh.bind(this), 500)
+		},
+		refresh() {
+			this.socket.emit(socketActions.zwave, {
+				api: 'refreshNeighbors',
+				args: [],
+			})
+		},
+		checkHealth(type) {
+			this.socket.emit(socketActions.zwave, {
+				api: `check${type}Health`,
+				args: [this.selectedNode.id],
+			})
+		},
+	},
+	mounted() {
+		this.socket.on(socketEvents.api, (data) => {
+			if (data.success) {
+				switch (data.api) {
+					case 'refreshNeighbors': {
+						this.showSnackbar('Nodes Neighbors updated')
+						this.setNeighbors(data.result)
+						// refresh graph
+						// this.$refs.mesh.debounceRefresh()
+						break
+					}
+				}
+			}
+		})
 
-      // update links if new node has been added
-      if (refresh) {
-        self.refresh()
-      }
-    })
+		// make properties window draggable
+		const propertiesDiv = document.getElementById('properties')
+		const mesh = document.getElementById('mesh')
+		let isDown = false
+		let offset = [0, 0]
 
-    this.socket.on(this.socketEvents.api, data => {
-      if (data.success) {
-        switch (data.api) {
-          case 'refreshNeighbors':
-            var neighbors = data.result
-            for (var i = 0; i < neighbors.length; i++) {
-              if (self.nodes[i]) {
-                self.nodes[i].neighbors = neighbors[i]
-              }
-            }
-            self.updateLinks()
-            break
-        }
-      } else {
-        self.showSnackbar(
-          'Error while calling api ' + data.api + ': ' + data.message
-        )
-      }
-    })
+		// TODO: Update dimensions on screen resize
+		const dimensions = [mesh.clientWidth, mesh.clientHeight]
 
-    this.socket.emit(this.socketActions.init, true)
-    this.refresh()
+		propertiesDiv.addEventListener(
+			'mousedown',
+			function (e) {
+				isDown = true
+				offset = [
+					propertiesDiv.offsetLeft - e.clientX,
+					propertiesDiv.offsetTop - e.clientY,
+				]
+			},
+			true
+		)
 
-    // make properties window draggable
-    var propertiesDiv = document.getElementById('properties')
-    var mesh = document.getElementById('mesh')
-    var isDown = false
-    var offset = [0, 0]
+		document.addEventListener(
+			'mouseup',
+			function () {
+				isDown = false
+			},
+			true
+		)
 
-    // TODO: Update dimensions on screen resize
-    var dimensions = [mesh.clientWidth, mesh.clientHeight]
+		document.addEventListener(
+			'mousemove',
+			function (e) {
+				e.preventDefault()
+				if (isDown) {
+					const l = e.clientX
+					const r = e.clientY
 
-    propertiesDiv.addEventListener(
-      'mousedown',
-      function (e) {
-        isDown = true
-        offset = [
-          propertiesDiv.offsetLeft - e.clientX,
-          propertiesDiv.offsetTop - e.clientY
-        ]
-      },
-      true
-    )
+					if (l > 0 && l < dimensions[0]) {
+						propertiesDiv.style.left = l + offset[0] + 'px'
+					}
+					if (r > 0 && r < dimensions[1]) {
+						propertiesDiv.style.top = r + offset[1] + 'px'
+					}
+				}
+			},
+			true
+		)
 
-    document.addEventListener(
-      'mouseup',
-      function () {
-        isDown = false
-      },
-      true
-    )
-
-    document.addEventListener(
-      'mousemove',
-      function (e) {
-        event.preventDefault()
-        if (isDown) {
-          var l = e.clientX
-          var r = e.clientY
-
-          if (l > 0 && l < dimensions[0]) {
-            propertiesDiv.style.left = l + offset[0] + 'px'
-          }
-          if (r > 0 && r < dimensions[1]) {
-            propertiesDiv.style.top = r + offset[1] + 'px'
-          }
-        }
-      },
-      true
-    )
-  },
-  beforeDestroy () {
-    if (this.socket) {
-      // unbind events
-      for (const event in this.socketEvents) {
-        this.socket.off(event)
-      }
-    }
-  }
+		this.debounceRefresh()
+	},
+	beforeDestroy() {
+		if (this.refreshTimeout) {
+			clearTimeout(this.refreshTimeout)
+		}
+		if (this.socket) {
+			// unbind events
+			this.socket.off(socketEvents.api)
+		}
+	},
 }
 </script>

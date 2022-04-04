@@ -47,19 +47,25 @@ NODE_MAJOR=$(node -v | egrep -o '[0-9].' | head -n 1)
 echo "## Clear $PKG_FOLDER folder"
 rm -rf $PKG_FOLDER/*
 
-
 if [ ! -z "$1" ]; then
 	echo "## Building application..."
 	echo ''
-	npm run build
-	echo "Executing command: pkg package.json -t node12-linux-x64 --out-path $PKG_FOLDER"
-	pkg package.json -t node12-linux-x64 --out-path $PKG_FOLDER
+	yarn run build
+
+  # Workaround for pkg bug (part 1a):
+  mv node_modules/@jamescoyle/vue-icon/lib/svg-icon.vue svg-icon.vue.bak
+
+	echo "Executing command: pkg package.json -t node$NODE_MAJOR-linux-x64 --out-path $PKG_FOLDER"
+	pkg package.json -t node$NODE_MAJOR-linux-x64 --out-path $PKG_FOLDER
 else
 
 	if ask "Re-build $APP?"; then
 		echo "## Building application"
-		npm run build
+		yarn run build
 	fi
+
+  # Workaround for pkg bug (part 1b):
+  mv node_modules/@jamescoyle/vue-icon/lib/svg-icon.vue svg-icon.vue.bak
 
 	echo '###################################################'
 	echo '## Choose architecture to build'
@@ -73,6 +79,7 @@ else
 		"armv6"
 		"x86"
 		"alpine"
+		"arm64"
 	)
 	echo ''
 	select option in "${options[@]}"; do
@@ -102,6 +109,11 @@ else
 				pkg package.json -t node$NODE_MAJOR-alpine-x64 --out-path $PKG_FOLDER
 				break
 				;;
+			6)
+				echo "## Creating application package in $PKG_FOLDER folder"
+				pkg package.json -t node$NODE_MAJOR-linux-arm64 --out-path $PKG_FOLDER --public-packages=*
+				break
+				;;
 			*)
 				echo '####################'
 				echo '## Invalid option ##'
@@ -111,23 +123,8 @@ else
 	done
 fi
 
-echo "## Check for .node files to include in executable folder"
-mapfile -t TO_INCLUDE < <(find ./node_modules/ -type f -name "*.node" | grep -v obj.target)
-
-TOTAL_INCLUDE=${#TO_INCLUDE[@]}
-
-echo "## Found $TOTAL_INCLUDE files to include"
-
-i=0
-
-while [ "$i" -lt "$TOTAL_INCLUDE" ]
-do
-  IFS='/' path=(${TO_INCLUDE[$i]})
-  file=${path[-1]}
-  echo "## Copying $file to $PKG_FOLDER folder"
-  cp "${TO_INCLUDE[$i]}" "./$PKG_FOLDER"
-  let "i = $i + 1"
-done
+# Workaround for pkg bug (part 2):
+mv svg-icon.vue.bak node_modules/@jamescoyle/vue-icon/lib/svg-icon.vue
 
 echo "## Create folders needed"
 cd $PKG_FOLDER

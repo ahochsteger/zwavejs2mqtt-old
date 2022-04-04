@@ -3,6 +3,7 @@
 // see http://vuejs-templates.github.io/webpack for documentation.
 
 const path = require('path')
+require('dotenv').config({ path: './.env.webpack' })
 
 const proxyScheme = process.env.SERVER_SSL ? 'https' : 'http'
 const proxyWebSocketScheme = process.env.SERVER_SSL ? 'wss' : 'ws'
@@ -19,6 +20,7 @@ const proxyWSURL = process.env.SERVER_WS_URL
   ? process.env.SERVER_WS_URL
   : `${proxyWebSocketScheme}://${proxyHostname}:${proxyPort}`
 
+// this props are used on build/ files as general settings for webpack
 module.exports = {
   dev: {
     // Paths
@@ -26,16 +28,27 @@ module.exports = {
     assetsPublicPath: '/',
     proxyTable: {
       '/socket.io': {
-        target: proxyWSURL,
-        ws: true
+        target: proxyURL,
+        ws: true,
+        secure: false, // allow self signed certificates
+        changeOrigin: true
       },
-      '/health': proxyURL,
-      '/api': proxyURL
+      '/health': {
+        target: proxyURL,
+        secure: false,
+        changeOrigin: true
+      },
+      '/api': {
+        target: proxyURL,
+        secure: false,
+        changeOrigin: true
+      }
     },
+    https: !!process.env.SERVER_SSL,
 
     // Various Dev Server settings
-    host: 'localhost', // can be overwritten by process.env.HOST
-    port: 8092, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined
+    host: process.env.HOST ? process.env.HOST : 'localhost',
+    port: process.env.PORT ? process.env.PORT : 8092, // if port is in use, a free one will be determined
     autoOpenBrowser: false,
     errorOverlay: true,
     notifyOnErrors: true,
@@ -54,7 +67,7 @@ module.exports = {
      */
 
     // https://webpack.js.org/configuration/devtool/#development
-    devtool: 'cheap-module-eval-source-map',
+    devtool: 'eval-cheap-module-source-map',
 
     // If you have problems debugging vue-files in devtools,
     // set this to false - it *may* help
@@ -79,18 +92,18 @@ module.exports = {
 
     productionSourceMap: true,
     // https://webpack.js.org/configuration/devtool/#production
-    devtool: '#source-map',
+    devtool: 'cheap-module-source-map',
 
     // Gzip off by default as many popular static hosts such as
     // Surge or Netlify already gzip all static assets for you.
     // Before setting to `true`, make sure to:
-    // npm install --save-dev compression-webpack-plugin
+    // yarn install --save-dev compression-webpack-plugin
     productionGzip: false,
     productionGzipExtensions: ['js', 'css'],
 
     // Run the build command with an extra argument to
     // View the bundle analyzer report after build finishes:
-    // `npm run build --report`
+    // `yarn run build --report`
     // Set to `true` or `false` to always turn it on or off
     bundleAnalyzerReport: process.env.npm_config_report
   }

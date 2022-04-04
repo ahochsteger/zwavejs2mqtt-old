@@ -8,6 +8,7 @@ yarn-error.log*
 
 # Distribution path
 /dist/
+/server/
 /store/
 /pkg/
 
@@ -62,6 +63,8 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.app
+.env.webpack
 
 # next.js build output
 .next
@@ -73,3 +76,11 @@ typings/
 *.ntvs*
 *.njsproj
 *.sln
+
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
